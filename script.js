@@ -89,10 +89,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             /*barOptions: {
                 stacked: 1
             },*/
-            lineOptions: {
+            /*lineOptions: {
                 hideDots: 1,
                 regionFill: 0
-            }
+            }*/
 
         })
 
