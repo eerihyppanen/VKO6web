@@ -1,4 +1,4 @@
-const requestBody = {
+const requestBodyTemplate = {
     "query": [
         {
             "code": "Vuosi",
@@ -33,8 +33,33 @@ const requestBody = {
 
 document.addEventListener("DOMContentLoaded", async () => {
 
-    const getData = async ()=> {
+    let municipalityCodes = {};
+
+    const getMunicipalityCodes = async () => {
+        const url = "https://statfin.stat.fi/PxWeb/api/v1/en/StatFin/synt/statfin_synt_pxt_12dy.px";
+
+        const res = await fetch(url);
+        if (!res.ok) {
+            console.error("Failed to fetch municipality codes");
+            return;
+        }
+        const data = await res.json();
+        const codes = data.variables[1].values;
+        const names = data.variables[1].valueTexts;
+
+        codes.forEach((code, index) => {
+            municipalityCodes[names[index].toLowerCase()] = code;
+        });
+    };
+
+
+    const getData = async (areaCode)=> {
         const url = "https://statfin.stat.fi/PxWeb/api/v1/en/StatFin/synt/statfin_synt_pxt_12dy.px"
+
+        const requestBody = JSON.parse(JSON.stringify(requestBodyTemplate));
+        requestBody.query[1].selection.values = [areaCode];
+
+        try{
 
         const res = await fetch(url, {
             method: "POST",
@@ -43,11 +68,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         });
         if(!res.ok)  {
+            console.error("Failed to fetch data, status:", res.status);//too much debugging to console again:/
             return;
         }
         const data = await res.json()
         //console.log(data);
         return data;
+        } catch (error) {
+            console.error("Error fetching data:", error);
+        }
+        
+        
 
 
     };
@@ -55,8 +86,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 
 
-    const buildChart = async () => {
-        const data = await getData()
+    const buildChart = async (areaCode) => {
+        const data = await getData(areaCode);
+        if (!data || !data.dimension) {
+            console.error("Invalid data received");
+            return;
+        }
         //console.log(data);
 
         
@@ -86,20 +121,28 @@ document.addEventListener("DOMContentLoaded", async () => {
             type: "line",
             height: 450,
             colors: ['#eb5146'],
-            /*barOptions: {
-                stacked: 1
-            },*/
-            /*lineOptions: {
-                hideDots: 1,
-                regionFill: 0
-            }*/
+           
 
-        })
+        });
 
 
 
-    }
+    };
 
-    buildChart()
+    document.getElementById("submit-data").addEventListener("click", async () => {
+        const inputArea = document.getElementById("input-area").value.trim().toLowerCase();
+        if (inputArea && municipalityCodes[inputArea]) {
+            buildChart(municipalityCodes[inputArea]);
+        } else {
+            console.error("Invalid municipality name");
+        }
+    });
+
+    await getMunicipalityCodes();
+
+
+    buildChart("SSS");
+
+    
 });
 
